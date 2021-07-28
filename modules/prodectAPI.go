@@ -4,15 +4,15 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"net/http"
 	"strings"
 	"time"
 )
 
-
 type Product struct {
 	Name  string `bson:"name"`
 	Image string `bson:"image"`
-	Score int `bson:"score"`
+	Score int    `bson:"score"`
 }
 
 func CreateProduct(c *gin.Context) {
@@ -20,12 +20,11 @@ func CreateProduct(c *gin.Context) {
 	image, _ := c.FormFile("image")
 	score := c.PostForm("score")
 
-	scoreInt,_ := StrToInt(score)
+	scoreInt, _ := StrToInt(score)
 
-
-	if name!="" && scoreInt > 0{
-		imageFileName := name+"-"+time.Now().Format("01-02-2006-15:04:05.000000000")+".jpg"
-		imageFileName = strings.ReplaceAll(imageFileName,":",".")
+	if name != "" && scoreInt > 0 {
+		imageFileName := name + "-" + time.Now().Format("01-02-2006-15:04:05.000000000") + ".jpg"
+		imageFileName = strings.ReplaceAll(imageFileName, ":", ".")
 
 		// Upload the file to specific dst.
 		c.SaveUploadedFile(image, "./image_product/"+imageFileName)
@@ -44,9 +43,9 @@ func CreateProduct(c *gin.Context) {
 			c.JSON(500, err)
 		} else {
 			id := res.InsertedID
-			c.JSON(200, id)
+			c.JSON(http.StatusOK, gin.H{"status": 1, "id": id})
 		}
-	}else{
+	} else {
 		c.JSON(417, "Enter name and Score more than 0")
 	}
 }
@@ -63,7 +62,5 @@ func GetAllProduct(c *gin.Context) {
 	if err = cursor.All(ctx, &products); err != nil {
 		c.JSON(500, err)
 	}
-
 	c.JSON(200, products)
 }
-
