@@ -1,6 +1,7 @@
 package modules
 
 import (
+	db "backend/database"
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	_ "go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	_ "go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
@@ -65,13 +65,10 @@ func IsDup(err error) bool {
 	return false
 }
 
-var ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
-var client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-var db = client.Database("linedb")
-
 func GetUserByID(c *gin.Context) {
-	collection := db.Collection("user")
-	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+
+	collection := db.Database.Collection("user")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
 	userID := c.Param("userID")
 	cursor, err := collection.Find(ctx, bson.M{"userID": userID})
@@ -80,7 +77,7 @@ func GetUserByID(c *gin.Context) {
 		c.JSON(500, err)
 	}
 	var users []bson.M
-	if err = cursor.All(ctx, &users); err != nil {
+	if err = cursor.All(context.TODO(), &users); err != nil {
 		c.JSON(500, err)
 	}
 
@@ -106,9 +103,9 @@ func Register(c *gin.Context) {
 		Product: []interface{}{},
 	}
 
-	collection := db.Collection("user")
+	collection := db.Database.Collection("user")
 
-	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	res, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		if IsDup(err) {
@@ -142,9 +139,9 @@ func SendReceipt(c *gin.Context) {
 			Image:     imageFileName,
 		}
 
-		collection := db.Collection("receipt")
+		collection := db.Database.Collection("receipt")
 
-		ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 		res, err := collection.InsertOne(ctx, receipt)
 		if err != nil {
 			fmt.Println(err)
@@ -168,18 +165,20 @@ func Exchange(c *gin.Context) {
 	productID := c.PostForm("productID")
 	productObjectID, _ := primitive.ObjectIDFromHex(productID)
 
-	collection := db.Collection("products")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	collection := db.Database.Collection("products")
 	cursor := collection.FindOne(ctx, bson.M{"_id": productObjectID})
 	var product = ProductWithID{}
 	cursor.Decode(&product)
 
-	collection = db.Collection("user")
+	collection = db.Database.Collection("user")
 	cursor = collection.FindOne(ctx, bson.M{"userID": userID})
 	var user = UserWithID{}
 	cursor.Decode(&user)
 	if user.Coupon.Unused >= product.Score && userID != "" && productID != "" {
-		collection = db.Collection("user")
-		ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+		collection = db.Database.Collection("user")
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		filter := bson.M{"userID": userID}
 		update := bson.M{"$inc": bson.M{"coupon.used": product.Score}}
 

@@ -1,6 +1,7 @@
 package modules
 
 import (
+	db "backend/database"
 	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,9 +36,9 @@ func CreateProduct(c *gin.Context) {
 			Score: scoreInt,
 		}
 
-		collection := db.Collection("products")
+		collection := db.Database.Collection("products")
 
-		ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 		res, err := collection.InsertOne(ctx, product)
 		if err != nil {
 			c.JSON(500, err)
@@ -51,8 +52,8 @@ func CreateProduct(c *gin.Context) {
 }
 
 func GetAllProduct(c *gin.Context) {
-	collection := db.Collection("products")
-	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+	collection := db.Database.Collection("products")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {

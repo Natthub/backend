@@ -1,6 +1,7 @@
 package modules
 
 import (
+	db "backend/database"
 	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,11 +11,10 @@ import (
 	"time"
 )
 
-
 func GetReceiptNonScore(c *gin.Context) {
-	collection := db.Collection("receipt")
+	collection := db.Database.Collection("receipt")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	cursor, err := collection.Find(ctx, bson.M{"score": bson.M{"$eq" : 0}} )
+	cursor, err := collection.Find(ctx, bson.M{"score": bson.M{"$eq": 0}})
 
 	if err != nil {
 		c.JSON(500, err)
@@ -33,7 +33,7 @@ func StrToInt(str string) (int, error) {
 }
 
 func AddScore(c *gin.Context) {
-	collection := db.Collection("receipt")
+	collection := db.Database.Collection("receipt")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
 	userID := c.PostForm("userID")
@@ -42,19 +42,19 @@ func AddScore(c *gin.Context) {
 
 	scoreInt, _ := StrToInt(score)
 
-	if scoreInt > 0{
+	if scoreInt > 0 {
 		res, err := collection.UpdateOne(
 			ctx,
 			bson.M{"receiptID": receiptID},
 			bson.D{
 				{"$set", bson.D{{"score", scoreInt}}},
-			}, )
+			})
 		if err != nil {
 			c.JSON(500, err)
 		}
 
-		collection = db.Collection("user")
-		ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+		collection = db.Database.Collection("user")
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		res, err = collection.UpdateOne(
 			ctx,
 			bson.M{"userID": userID},
@@ -62,14 +62,13 @@ func AddScore(c *gin.Context) {
 				{"$inc", bson.D{{"coupon.unused", scoreInt}}},
 			}, options.Update().SetUpsert(true))
 
-
 		if err != nil {
 			c.JSON(500, err)
-		} else{
+		} else {
 			id := res.ModifiedCount
 			c.JSON(200, id)
 		}
-	}else{
+	} else {
 		c.JSON(417, "Score must be more than 0")
 	}
 }
