@@ -3,8 +3,10 @@ package main
 import (
 	"backend/database"
 	"backend/modules"
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"os"
 )
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -22,6 +24,15 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func getPort() string {
+	var port = os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		fmt.Println("No Port In Heroku" + port)
+	}
+	return ":" + port
 }
 
 func main() {
@@ -52,5 +63,5 @@ func main() {
 
 	r.GET("/image/receipt/:filename", modules.GetReceiptImage)
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.Run(getPort()) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
